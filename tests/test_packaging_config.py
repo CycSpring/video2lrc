@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 from pathlib import Path
 
 from PIL import Image
@@ -192,6 +193,7 @@ def test_release_packager_requires_self_contained_assets_and_checksums() -> None
 
 def test_inno_installer_is_per_user_x64_and_reproducible() -> None:
     source = _source("installer/Video2LRC.iss")
+    language_file = PROJECT_ROOT / "installer" / "languages" / "ChineseSimplified.isl"
 
     assert "AppId={{2E31B2DF-1961-4C78-88B8-329AFB4FA049}" in source
     assert "PrivilegesRequired=lowest" in source
@@ -201,6 +203,10 @@ def test_inno_installer_is_per_user_x64_and_reproducible() -> None:
     assert "recursesubdirs" in source
     assert "UninstallDisplayIcon={app}\\{#MyAppExeName}" in source
     assert "Video2LRC-v{#MyAppVersion}-windows-x64-setup" in source
+    assert 'MessagesFile: "languages\\ChineseSimplified.isl"' in source
+    assert hashlib.sha256(language_file.read_bytes()).hexdigest() == (
+        "7d544b9bb1d142cfa11f2e5d3cc8abe2e55f8e066c5124e3772675aa236e1278"
+    )
 
 
 def test_release_workflow_pins_external_build_inputs() -> None:

@@ -19,6 +19,11 @@ from the Gyan FFmpeg Essentials build. That build is licensed under GPL version
 The package includes the distributor's GPL text and build README as
 `licenses/FFmpeg-GPL-3.0.txt` and `licenses/FFmpeg-build-README.txt`.
 
+The Windows setup UI uses the `ChineseSimplified.isl` translation from the
+Inno Setup 6.7.3 source tree. Its upstream attribution header is retained in
+`installer/languages/ChineseSimplified.isl`; it remains subject to the Inno
+Setup license, <https://jrsoftware.org/files/is/license.txt>.
+
 ## Major runtime components
 
 - Python: Python Software Foundation License, <https://www.python.org/>
