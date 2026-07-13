@@ -96,11 +96,20 @@ jobs:
       - name: Create installer and portable archive
         shell: pwsh
         run: |
-          .\package-release.ps1 `
-            -Version $env:VIDEO2LRC_VERSION `
-            -IsccPath $env:VIDEO2LRC_ISCC `
-            -FfmpegLicensePath $env:VIDEO2LRC_FFMPEG_LICENSE `
-            -Python (Get-Command python).Source
+          try {
+            .\package-release.ps1 `
+              -Version $env:VIDEO2LRC_VERSION `
+              -IsccPath $env:VIDEO2LRC_ISCC `
+              -FfmpegLicensePath $env:VIDEO2LRC_FFMPEG_LICENSE `
+              -Python (Get-Command python).Source
+          } catch {
+            $message = $_.Exception.Message `
+              -replace '%', '%25' `
+              -replace "`r", '%0D' `
+              -replace "`n", '%0A'
+            Write-Output "::error title=Release packaging failed::$message"
+            throw
+          }
 
       - name: Verify release assets
         shell: pwsh

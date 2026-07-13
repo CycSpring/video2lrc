@@ -212,14 +212,19 @@ try {
         throw "Portable archive creation failed with exit code $LASTEXITCODE."
     }
 
-    & $resolvedIscc `
-        "/Qp" `
-        "/DMyAppVersion=$Version" `
-        "/DSourceDir=$StagingApp" `
-        "/DOutputDir=$ReleaseRoot" `
-        $InstallerScript
-    if ($LASTEXITCODE -ne 0) {
-        throw "Inno Setup compilation failed with exit code $LASTEXITCODE."
+    $isccOutput = @(
+        & $resolvedIscc `
+            "/Qp" `
+            "/DMyAppVersion=$Version" `
+            "/DSourceDir=$StagingApp" `
+            "/DOutputDir=$ReleaseRoot" `
+            $InstallerScript 2>&1
+    )
+    $isccExitCode = $LASTEXITCODE
+    $isccOutput | ForEach-Object { Write-Host $_ }
+    if ($isccExitCode -ne 0) {
+        $diagnostic = ($isccOutput | Select-Object -Last 30) -join [Environment]::NewLine
+        throw "Inno Setup compilation failed with exit code $isccExitCode.`n$diagnostic"
     }
 
     foreach ($artifact in @($PortableArchive, $InstallerArtifact)) {

@@ -184,6 +184,8 @@ def test_release_packager_requires_self_contained_assets_and_checksums() -> None
     assert "windows-x64-setup.exe" in source
     assert "SHA256SUMS.txt" in source
     assert "Get-FileHash" in source
+    assert "$isccOutput" in source
+    assert "Select-Object -Last 30" in source
     assert "Remove-Item -LiteralPath $ReleaseRoot -Recurse -Force" in source
     assert "StartsWith($projectFullPath" in source
 
@@ -215,4 +217,5 @@ def test_release_workflow_pins_external_build_inputs() -> None:
     assert "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732" in source
     assert ".\\build.ps1" in source
     assert ".\\package-release.ps1" in source
+    assert "::error title=Release packaging failed::" in source
     assert 'gh release create "${{ github.ref_name }}"' in source
