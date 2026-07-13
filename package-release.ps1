@@ -55,6 +55,7 @@ foreach ($requiredFile in @(
     $BundledFfprobe,
     $InstallerScript,
     (Join-Path $ProjectRoot "README.md"),
+    (Join-Path $ProjectRoot "README.zh-CN.md"),
     (Join-Path $ProjectRoot "THIRD_PARTY_NOTICES.md"),
     (Join-Path $ProjectRoot "requirements.lock.txt"),
     $PythonExecutable
@@ -146,6 +147,8 @@ try {
     Copy-Item -LiteralPath $DistRoot -Destination $StagingApp -Recurse -Force
     Copy-Item -LiteralPath (Join-Path $ProjectRoot "README.md") `
         -Destination (Join-Path $StagingApp "README.md") -Force
+    Copy-Item -LiteralPath (Join-Path $ProjectRoot "README.zh-CN.md") `
+        -Destination (Join-Path $StagingApp "README.zh-CN.md") -Force
     Copy-Item -LiteralPath (Join-Path $ProjectRoot "THIRD_PARTY_NOTICES.md") `
         -Destination (Join-Path $StagingApp "THIRD_PARTY_NOTICES.md") -Force
     Copy-Item -LiteralPath (Join-Path $ProjectRoot "requirements.lock.txt") `

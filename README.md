@@ -1,5 +1,7 @@
 # video2lrc
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 `video2lrc` extracts burned-in lyric subtitles from a music video and writes a line-level LRC draft. The MVP is designed for CPU-only Windows use and targets an editable result rather than frame-perfect karaoke timing.
 
 ## Install the Windows release

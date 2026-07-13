@@ -180,6 +180,7 @@ def test_release_packager_requires_self_contained_assets_and_checksums() -> None
     assert "sysconfig.get_paths()['purelib']" in source
     assert "FFmpeg-GPL-3.0.txt" in source
     assert "THIRD_PARTY_NOTICES.md" in source
+    assert "README.zh-CN.md" in source
     assert "requirements.lock.txt" in source
     assert "windows-x64-portable.zip" in source
     assert "windows-x64-setup.exe" in source
@@ -225,3 +226,17 @@ def test_release_workflow_pins_external_build_inputs() -> None:
     assert ".\\package-release.ps1" in source
     assert "::error title=Release packaging failed::" in source
     assert 'gh release create "${{ github.ref_name }}"' in source
+
+
+def test_readmes_link_languages_and_chinese_readme_covers_release_usage() -> None:
+    english = _source("README.md")
+    chinese = _source("README.zh-CN.md")
+
+    assert "[简体中文](README.zh-CN.md)" in english
+    assert "[English](README.md)" in chinese
+    assert "## 安装 Windows 发行版" in chinese
+    assert "## 原生桌面界面" in chinese
+    assert "## 构建 Windows 应用" in chinese
+    assert "## 缓存行为" in chinese
+    assert "## 测试" in chinese
+    assert "Video2LRC-v0.1.0-windows-x64-setup.exe" in chinese
