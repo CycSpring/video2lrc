@@ -19,10 +19,10 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -99,7 +99,8 @@ jobs:
           .\package-release.ps1 `
             -Version $env:VIDEO2LRC_VERSION `
             -IsccPath $env:VIDEO2LRC_ISCC `
-            -FfmpegLicensePath $env:VIDEO2LRC_FFMPEG_LICENSE
+            -FfmpegLicensePath $env:VIDEO2LRC_FFMPEG_LICENSE `
+            -Python (Get-Command python).Source
 
       - name: Verify release assets
         shell: pwsh
@@ -117,7 +118,7 @@ jobs:
           Get-Content release\SHA256SUMS.txt
 
       - name: Upload workflow artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Video2LRC-${{ github.ref_name }}-windows-x64
           path: release/*

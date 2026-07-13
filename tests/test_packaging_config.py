@@ -174,6 +174,9 @@ def test_release_packager_requires_self_contained_assets_and_checksums() -> None
     assert '"_internal\\bin\\ffmpeg.exe"' in source
     assert '"_internal\\bin\\ffprobe.exe"' in source
     assert "Pass -FfmpegLicensePath" in source
+    assert "[string]$Python" in source
+    assert "Resolve-PythonExecutable" in source
+    assert "sysconfig.get_paths()['purelib']" in source
     assert "FFmpeg-GPL-3.0.txt" in source
     assert "THIRD_PARTY_NOTICES.md" in source
     assert "requirements.lock.txt" in source
@@ -203,9 +206,9 @@ def test_release_workflow_pins_external_build_inputs() -> None:
 
     assert 'tags:\n      - "v*"' in source
     assert "contents: write" in source
-    assert "actions/checkout@v4" in source
-    assert "actions/setup-python@v5" in source
-    assert "actions/upload-artifact@v4" in source
+    assert "actions/checkout@v7" in source
+    assert "actions/setup-python@v6" in source
+    assert "actions/upload-artifact@v7" in source
     assert "ffmpeg-8.1.1-essentials_build.zip" in source
     assert "6f58ce889f59c311410f7d2b18895b33c03456463486f3b1ebc93d97a0f54541" in source
     assert "innosetup-6.7.3.exe" in source

@@ -2,7 +2,8 @@
 param(
     [string]$Version = "0.1.0",
     [string]$IsccPath = "",
-    [string]$FfmpegLicensePath = ""
+    [string]$FfmpegLicensePath = "",
+    [string]$Python = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,7 +22,27 @@ $InstallerScript = Join-Path $ProjectRoot "installer\Video2LRC.iss"
 $PortableArchive = Join-Path $ReleaseRoot "Video2LRC-v$Version-windows-x64-portable.zip"
 $InstallerArtifact = Join-Path $ReleaseRoot "Video2LRC-v$Version-windows-x64-setup.exe"
 $ChecksumArtifact = Join-Path $ReleaseRoot "SHA256SUMS.txt"
-$Python = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
+
+function Resolve-PythonExecutable {
+    param([string]$RequestedPath)
+
+    if ($RequestedPath) {
+        return (Resolve-Path -LiteralPath $RequestedPath -ErrorAction Stop).Path
+    }
+
+    $venvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
+    if (Test-Path -LiteralPath $venvPython -PathType Leaf) {
+        return (Resolve-Path -LiteralPath $venvPython).Path
+    }
+
+    $command = Get-Command "python.exe" -ErrorAction SilentlyContinue
+    if ($null -ne $command) {
+        return $command.Source
+    }
+    throw "Python was not found. Pass -Python with the interpreter used for the build."
+}
+
+$PythonExecutable = Resolve-PythonExecutable -RequestedPath $Python
 
 if ($Version -notmatch '^\d+\.\d+\.\d+$') {
     throw "Version must use semantic x.y.z form: $Version"
@@ -36,7 +57,7 @@ foreach ($requiredFile in @(
     (Join-Path $ProjectRoot "README.md"),
     (Join-Path $ProjectRoot "THIRD_PARTY_NOTICES.md"),
     (Join-Path $ProjectRoot "requirements.lock.txt"),
-    $Python
+    $PythonExecutable
 )) {
     if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
         throw "Required release input is missing: $requiredFile"
@@ -140,14 +161,20 @@ try {
             -Destination (Join-Path $licenseRoot "FFmpeg-build-README.txt") -Force
     }
 
-    $pythonBase = (& $Python -c "import sys; print(sys.base_prefix)" | Select-Object -Last 1).Trim()
+    $pythonBase = (
+        & $PythonExecutable -c "import sys; print(sys.base_prefix)" |
+            Select-Object -Last 1
+    ).Trim()
     $pythonLicense = Join-Path $pythonBase "LICENSE.txt"
     if (Test-Path -LiteralPath $pythonLicense -PathType Leaf) {
         Copy-Item -LiteralPath $pythonLicense `
             -Destination (Join-Path $licenseRoot "Python-PSF-LICENSE.txt") -Force
     }
 
-    $sitePackages = Join-Path $ProjectRoot ".venv\Lib\site-packages"
+    $sitePackages = (
+        & $PythonExecutable -c "import sysconfig; print(sysconfig.get_paths()['purelib'])" |
+            Select-Object -Last 1
+    ).Trim()
     $runtimeDistributions = @(
         "PySide6_Essentials",
         "shiboken6",
