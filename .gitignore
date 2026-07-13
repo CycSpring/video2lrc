@@ -1,0 +1,30 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Runtime caches and private media fixtures
+work/
+local_testdata/
+outputs/
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+
+# Generated outputs
+*.lrc
+review.csv
+build/
+dist/
+release/
+*.log
+
+# Editor and OS files
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini

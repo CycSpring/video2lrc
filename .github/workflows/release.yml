@@ -1,0 +1,152 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows-release:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.lock.txt
+
+      - name: Resolve release version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Release tags must use vX.Y.Z format."
+          }
+          "VIDEO2LRC_VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Download pinned FFmpeg build
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP "ffmpeg-8.1.1-essentials_build.zip"
+          $extractRoot = Join-Path $env:RUNNER_TEMP "ffmpeg"
+          Invoke-WebRequest `
+            -Uri "https://github.com/GyanD/codexffmpeg/releases/download/8.1.1/ffmpeg-8.1.1-essentials_build.zip" `
+            -OutFile $archive
+          $expected = "6f58ce889f59c311410f7d2b18895b33c03456463486f3b1ebc93d97a0f54541"
+          $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) {
+            throw "FFmpeg archive SHA256 mismatch: $actual"
+          }
+          Expand-Archive -LiteralPath $archive -DestinationPath $extractRoot
+          $root = Get-ChildItem $extractRoot -Directory | Select-Object -First 1
+          if ($null -eq $root) {
+            throw "FFmpeg archive did not contain a root directory."
+          }
+          "VIDEO2LRC_FFMPEG_PATH=$($root.FullName)\bin\ffmpeg.exe" >> $env:GITHUB_ENV
+          "VIDEO2LRC_FFPROBE_PATH=$($root.FullName)\bin\ffprobe.exe" >> $env:GITHUB_ENV
+          "VIDEO2LRC_FFMPEG_LICENSE=$($root.FullName)\LICENSE" >> $env:GITHUB_ENV
+
+      - name: Install pinned Inno Setup compiler
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP "innosetup-6.7.3.exe"
+          Invoke-WebRequest `
+            -Uri "https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe" `
+            -OutFile $installer
+          $expected = "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732"
+          $actual = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) {
+            throw "Inno Setup installer SHA256 mismatch: $actual"
+          }
+          $process = Start-Process `
+            -FilePath $installer `
+            -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER') `
+            -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "Inno Setup installation failed: $($process.ExitCode)"
+          }
+          $iscc = Join-Path $env:LOCALAPPDATA "Programs\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path -LiteralPath $iscc)) {
+            throw "ISCC.exe was not installed at $iscc"
+          }
+          "VIDEO2LRC_ISCC=$iscc" >> $env:GITHUB_ENV
+
+      - name: Build self-contained Windows application
+        shell: pwsh
+        run: |
+          .\build.ps1 `
+            -BundleFFmpeg `
+            -FfmpegPath $env:VIDEO2LRC_FFMPEG_PATH `
+            -FfprobePath $env:VIDEO2LRC_FFPROBE_PATH `
+            -Python (Get-Command python).Source
+
+      - name: Create installer and portable archive
+        shell: pwsh
+        run: |
+          .\package-release.ps1 `
+            -Version $env:VIDEO2LRC_VERSION `
+            -IsccPath $env:VIDEO2LRC_ISCC `
+            -FfmpegLicensePath $env:VIDEO2LRC_FFMPEG_LICENSE
+
+      - name: Verify release assets
+        shell: pwsh
+        run: |
+          $expectedAssets = @(
+            "release\Video2LRC-v$env:VIDEO2LRC_VERSION-windows-x64-setup.exe",
+            "release\Video2LRC-v$env:VIDEO2LRC_VERSION-windows-x64-portable.zip",
+            "release\SHA256SUMS.txt"
+          )
+          foreach ($asset in $expectedAssets) {
+            if (-not (Test-Path -LiteralPath $asset -PathType Leaf)) {
+              throw "Missing release asset: $asset"
+            }
+          }
+          Get-Content release\SHA256SUMS.txt
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Video2LRC-${{ github.ref_name }}-windows-x64
+          path: release/*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          @"
+          Video2LRC $env:VIDEO2LRC_VERSION is the first native Windows desktop release.
+
+          - Native Qt Widgets interface with no Electron or embedded browser.
+          - Burned-in lyric OCR to editable line-level LRC.
+          - Phrase spacing, ROI preview, cache reuse, cancellation, and recommended-default reset.
+          - FFmpeg and FFprobe are bundled; no separate media-tool setup is required.
+
+          Choose the setup EXE for normal installation or the portable ZIP for no-install use.
+          Verify downloads with SHA256SUMS.txt.
+
+          Note: the executables are not Authenticode-signed, so Windows SmartScreen may show an unknown-publisher warning.
+          "@ | Set-Content -LiteralPath release-notes.md -Encoding UTF8
+
+          gh release create "${{ github.ref_name }}" `
+            release\Video2LRC-v$env:VIDEO2LRC_VERSION-windows-x64-setup.exe `
+            release\Video2LRC-v$env:VIDEO2LRC_VERSION-windows-x64-portable.zip `
+            release\SHA256SUMS.txt `
+            --verify-tag `
+            --title "Video2LRC $env:VIDEO2LRC_VERSION" `
+            --notes-file release-notes.md

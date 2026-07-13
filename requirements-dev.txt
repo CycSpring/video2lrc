@@ -1,0 +1,3 @@
+-r requirements-ui.txt
+pytest
+pytest-qt

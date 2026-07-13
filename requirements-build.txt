@@ -1,0 +1,2 @@
+# Release builds install the fully pinned, verified environment.
+-r requirements.lock.txt

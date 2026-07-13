@@ -1,0 +1,5 @@
+rapidocr
+onnxruntime
+opencv-python
+numpy<3
+rapidfuzz
