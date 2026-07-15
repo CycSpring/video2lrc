@@ -30,7 +30,7 @@ The UI provides:
 - Bottom-crop and normalized custom ROI modes with a generated preview montage.
 - Sampling, worker, subtitle-style, active-row, offset, confidence, and detector controls.
 - One-click restoration of all recommended processing defaults without clearing file paths.
-- Structured stage/OCR progress, bounded logs, cooperative cancellation, and a process-tree fallback.
+- Structured stage/OCR progress, ANSI-clean bounded logs with routine empty-frame messages collapsed, cooperative cancellation, and a process-tree fallback.
 - LRC preview, copy/open actions, persistent settings, and cache reuse.
 
 The GUI never imports RapidOCR, ONNX Runtime, or OpenCV itself. A worker CLI process owns those dependencies and communicates with the window through prefixed JSONL events.

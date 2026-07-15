@@ -13,6 +13,8 @@ from video2lrc_ui.process_runner import (
     ProcessRunner,
     build_process_invocation,
     configure_windows_no_window,
+    is_routine_rapidocr_empty_warning,
+    strip_ansi_sequences,
 )
 
 
@@ -190,3 +192,54 @@ def test_windows_process_modifier_adds_no_window_without_touching_pipes() -> Non
         runner._process.processChannelMode()
         == QProcess.ProcessChannelMode.SeparateChannels
     )
+
+
+def test_process_log_helpers_strip_ansi_and_classify_only_routine_empty_warnings() -> None:
+    empty_warning = (
+        "\x1b[33m[WARNING] 2026-07-15 [RapidOCR] main.py:132: "
+        "The text detection result is empty\x1b[0m"
+    )
+
+    assert strip_ansi_sequences(empty_warning) == (
+        "[WARNING] 2026-07-15 [RapidOCR] main.py:132: "
+        "The text detection result is empty"
+    )
+    assert is_routine_rapidocr_empty_warning(empty_warning) is True
+    assert (
+        is_routine_rapidocr_empty_warning(
+            "[WARNING] 2026-07-15 [RapidOCR] model download failed"
+        )
+        is False
+    )
+    assert (
+        is_routine_rapidocr_empty_warning(
+            "[WARNING] another component: The text detection result is empty"
+        )
+        is False
+    )
+
+
+def test_process_runner_collapses_empty_frame_warnings_and_preserves_other_logs() -> None:
+    runner = ProcessRunner()
+    logs: list[str] = []
+    runner.log_received.connect(logs.append)
+
+    runner._append_stderr(
+        "\x1b[33m[WARNING] 2026-07-15 [RapidOCR] main.py:132: "
+        "The text detection result is empty\x1b[0m\n"
+        "\x1b[33m[WARNING] 2026-07-15 [RapidOCR] output.py:39: "
+        "The identified content is empty.\x1b[0m\n"
+        "\x1b[33m[WARNING] 2026-07-15 [RapidOCR] low confidence\x1b[0m\n"
+    )
+
+    assert logs == ["[WARNING] 2026-07-15 [RapidOCR] low confidence"]
+    assert "\x1b" not in runner._stderr_tail
+    assert "text detection result is empty" not in runner._stderr_tail
+
+    runner._emit_suppressed_warning_summary()
+
+    assert logs[-1] == (
+        "OCR 提示：已折叠 2 条“未检测到字幕文字”的重复日志；"
+        "转场或无字幕画面通常属于正常情况。"
+    )
+    assert runner._suppressed_empty_ocr_warnings == 0

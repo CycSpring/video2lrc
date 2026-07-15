@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import codecs
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -27,6 +28,32 @@ from .protocol import EventStreamParser
 
 CANCEL_TIMEOUT_MS = 15_000
 WINDOWS_CREATE_NO_WINDOW = 0x08000000
+ANSI_ESCAPE_RE = re.compile(
+    r"(?:\x1b\][^\x07]*(?:\x07|\x1b\\))|"
+    r"(?:(?:\x1b\[|\x9b)[0-?]*[ -/]*[@-~])|"
+    r"(?:\x1b[@-_])"
+)
+RAPIDOCR_EMPTY_WARNING_MESSAGES = (
+    "the text detection result is empty",
+    "the identified content is empty",
+)
+
+
+def strip_ansi_sequences(text: str) -> str:
+    """Remove terminal formatting sequences before showing process logs in Qt."""
+
+    return ANSI_ESCAPE_RE.sub("", text)
+
+
+def is_routine_rapidocr_empty_warning(text: str) -> bool:
+    """Return whether a line is RapidOCR's expected no-text frame warning."""
+
+    normalized = strip_ansi_sequences(text).casefold()
+    return (
+        "[warning]" in normalized
+        and "[rapidocr]" in normalized
+        and any(message in normalized for message in RAPIDOCR_EMPTY_WARNING_MESSAGES)
+    )
 
 
 def configure_windows_no_window(
@@ -149,6 +176,7 @@ class ProcessRunner(QObject):
         self._stderr_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
         self._stderr_buffer = ""
         self._stderr_tail = ""
+        self._suppressed_empty_ocr_warnings = 0
         self._job_id: str | None = None
         self._cancel_directory: Path | None = None
         self._cancel_file: Path | None = None
@@ -205,6 +233,7 @@ class ProcessRunner(QObject):
         self._stderr_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
         self._stderr_buffer = ""
         self._stderr_tail = ""
+        self._suppressed_empty_ocr_warnings = 0
         self._terminal_event = None
         self._result = None
         self._preview_path = None
@@ -293,14 +322,34 @@ class ProcessRunner(QObject):
     def _append_stderr(self, text: str) -> None:
         if not text:
             return
-        self._stderr_tail = (self._stderr_tail + text)[-32_768:]
         self._stderr_buffer += text
         while "\n" in self._stderr_buffer:
             line, self._stderr_buffer = self._stderr_buffer.split("\n", 1)
-            self.log_received.emit(line.rstrip("\r"))
+            self._emit_stderr_line(line)
         if len(self._stderr_buffer) > 65_536:
-            self.log_received.emit(self._stderr_buffer)
+            self._emit_stderr_line(self._stderr_buffer)
             self._stderr_buffer = ""
+
+    def _emit_stderr_line(self, line: str) -> None:
+        cleaned = strip_ansi_sequences(line.rstrip("\r"))
+        if not cleaned.strip():
+            return
+        if is_routine_rapidocr_empty_warning(cleaned):
+            self._suppressed_empty_ocr_warnings += 1
+            return
+        separator = "\n" if self._stderr_tail else ""
+        self._stderr_tail = (self._stderr_tail + separator + cleaned)[-32_768:]
+        self.log_received.emit(cleaned)
+
+    def _emit_suppressed_warning_summary(self) -> None:
+        count = self._suppressed_empty_ocr_warnings
+        if count <= 0:
+            return
+        self._suppressed_empty_ocr_warnings = 0
+        self.log_received.emit(
+            f"OCR 提示：已折叠 {count} 条“未检测到字幕文字”的重复日志；"
+            "转场或无字幕画面通常属于正常情况。"
+        )
 
     def _report_protocol_issues(self) -> None:
         for issue in self._parser.pop_issues():
@@ -362,8 +411,9 @@ class ProcessRunner(QObject):
         self._report_protocol_issues()
         self._append_stderr(self._stderr_decoder.decode(b"", final=True))
         if self._stderr_buffer:
-            self.log_received.emit(self._stderr_buffer.rstrip("\r"))
+            self._emit_stderr_line(self._stderr_buffer)
             self._stderr_buffer = ""
+        self._emit_suppressed_warning_summary()
         self._cancel_timer.stop()
 
         terminal_type = (
