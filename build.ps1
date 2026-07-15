@@ -18,7 +18,7 @@ $IconIcoFile = Join-Path $ProjectRoot "assets\video2lrc.ico"
 $DistRoot = Join-Path $ProjectRoot "dist\Video2LRC"
 $InternalRoot = Join-Path $DistRoot "_internal"
 $GuiSmokePath = Join-Path $ProjectRoot "build\gui-smoke.png"
-$ExpectedFileVersion = "0.1.0.0"
+$ExpectedFileVersion = "0.1.1.0"
 
 function Resolve-PythonCommand {
     param([string]$RequestedPython)

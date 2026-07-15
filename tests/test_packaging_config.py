@@ -165,8 +165,13 @@ def test_version_resource_contains_product_and_numeric_version() -> None:
     source = _source("packaging/version_info.txt")
     ast.parse(source, filename="version_info.txt")
     assert 'StringStruct("ProductName", "Video2LRC")' in source
-    assert 'StringStruct("FileVersion", "0.1.0.0")' in source
-    assert "filevers=(0, 1, 0, 0)" in source
+    assert 'StringStruct("FileVersion", "0.1.1.0")' in source
+    assert 'StringStruct("ProductVersion", "0.1.1")' in source
+    assert "filevers=(0, 1, 1, 0)" in source
+    assert "prodvers=(0, 1, 1, 0)" in source
+    assert '$ExpectedFileVersion = "0.1.1.0"' in _source("build.ps1")
+    assert '[string]$Version = "0.1.1"' in _source("package-release.ps1")
+    assert '#define MyAppVersion "0.1.1"' in _source("installer/Video2LRC.iss")
 
 
 def test_release_packager_requires_self_contained_assets_and_checksums() -> None:
@@ -239,4 +244,4 @@ def test_readmes_link_languages_and_chinese_readme_covers_release_usage() -> Non
     assert "## 构建 Windows 应用" in chinese
     assert "## 缓存行为" in chinese
     assert "## 测试" in chinese
-    assert "Video2LRC-v0.1.0-windows-x64-setup.exe" in chinese
+    assert "Video2LRC-v0.1.1-windows-x64-setup.exe" in chinese

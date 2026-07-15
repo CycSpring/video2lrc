@@ -8,8 +8,8 @@
 
 Download the current assets from the [GitHub Releases page](https://github.com/CycSpring/video2lrc/releases):
 
-- `Video2LRC-v0.1.0-windows-x64-setup.exe` installs the application for the current Windows user.
-- `Video2LRC-v0.1.0-windows-x64-portable.zip` is the equivalent no-install package.
+- `Video2LRC-v0.1.1-windows-x64-setup.exe` installs the application for the current Windows user.
+- `Video2LRC-v0.1.1-windows-x64-portable.zip` is the equivalent no-install package.
 - `SHA256SUMS.txt` contains checksums for both downloads.
 
 The release assets include `ffmpeg` and `ffprobe`, so end users do not need to configure them separately. The executables are not Authenticode-signed; Windows SmartScreen may therefore show an unknown-publisher warning.
@@ -125,7 +125,7 @@ Bundled media tools are resolved from `_internal\bin` by both the GUI worker and
 Create the installer and portable release assets after a bundled build:
 
 ```powershell
-.\package-release.ps1 -Version 0.1.0 -FfmpegLicensePath "C:\path\to\ffmpeg\LICENSE"
+.\package-release.ps1 -Version 0.1.1 -FfmpegLicensePath "C:\path\to\ffmpeg\LICENSE"
 ```
 
 The release packager copies runtime license texts into the package, creates both assets with Inno Setup and `tar`, and writes `release\SHA256SUMS.txt`. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for attribution and source links.

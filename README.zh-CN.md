@@ -8,8 +8,8 @@
 
 请从 [GitHub Releases 页面](https://github.com/CycSpring/video2lrc/releases)下载当前版本：
 
-- `Video2LRC-v0.1.0-windows-x64-setup.exe`：为当前 Windows 用户安装应用。
-- `Video2LRC-v0.1.0-windows-x64-portable.zip`：功能相同的免安装版本。
+- `Video2LRC-v0.1.1-windows-x64-setup.exe`：为当前 Windows 用户安装应用。
+- `Video2LRC-v0.1.1-windows-x64-portable.zip`：功能相同的免安装版本。
 - `SHA256SUMS.txt`：两个下载文件的 SHA-256 校验值。
 
 发行包已内置 `ffmpeg` 和 `ffprobe`，普通用户无需另行配置。当前可执行文件尚未进行 Authenticode 代码签名，因此 Windows SmartScreen 可能显示“未知发布者”警告。
@@ -125,7 +125,7 @@ GUI 工作进程和直接运行的 `video2lrc-cli.exe` 都会从 `_internal\bin`
 完成内置 FFmpeg 的构建后，生成安装器和便携版资产：
 
 ```powershell
-.\package-release.ps1 -Version 0.1.0 -FfmpegLicensePath "C:\path\to\ffmpeg\LICENSE"
+.\package-release.ps1 -Version 0.1.1 -FfmpegLicensePath "C:\path\to\ffmpeg\LICENSE"
 ```
 
 发布打包脚本会将运行时许可文本复制到包中，使用 Inno Setup 和 `tar` 生成两个资产，并写入 `release\SHA256SUMS.txt`。第三方归属与源码链接见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

@@ -140,11 +140,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           @"
-          Video2LRC $env:VIDEO2LRC_VERSION is the first native Windows desktop release.
+          Video2LRC $env:VIDEO2LRC_VERSION is a native Windows desktop release.
 
           - Native Qt Widgets interface with no Electron or embedded browser.
           - Burned-in lyric OCR to editable line-level LRC.
           - Phrase spacing, ROI preview, cache reuse, cancellation, and recommended-default reset.
+          - Terminal color codes are removed and routine no-text OCR warnings are collapsed into a clear summary.
           - FFmpeg and FFprobe are bundled; no separate media-tool setup is required.
 
           Choose the setup EXE for normal installation or the portable ZIP for no-install use.
